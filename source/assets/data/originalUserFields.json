@@ -1,0 +1,79 @@
+[
+	{
+		"id": 1,
+		"type": "text",
+		"key": "name",
+		"title": "Name",
+		"description": ""
+	},
+	{
+		"id": 2,
+		"type": "text",
+		"key": "role",
+		"title": "Role",
+		"description": ""
+	},
+	{
+		"id": 3,
+		"type": "text",
+		"key": "email",
+		"title": "Email",
+		"description": ""
+	},
+	{
+		"id": 4,
+		"type": "text",
+		"key": "group",
+		"title": "Group",
+		"description": ""
+	},
+	{
+		"id": 5,
+		"type": "text",
+		"key": "organization",
+		"title": "Organization",
+		"description": ""
+	},
+	{
+		"id": 6,
+		"type": "date",
+		"key": "created_at",
+		"title": "Created At",
+		"description": ""
+	},
+	{
+		"id": 7,
+		"type": "text",
+		"key": "notes",
+		"title": "Notes",
+		"description": ""
+	},
+	{
+		"id": 8,
+		"type": "text",
+		"key": "details",
+		"title": "Details",
+		"description": ""
+	},
+	{
+		"id": 9,
+		"type": "text",
+		"key": "external_id",
+		"title": "External Id",
+		"description": ""
+	},
+	{
+		"id": 10,
+		"type": "text",
+		"key": "phone",
+		"title": "Phone",
+		"description": ""
+	},
+	{
+		"id": 11,
+		"type": "text",
+		"key": "tags",
+		"title": "Tags",
+		"description": ""
+	}
+]

@@ -1,0 +1,164 @@
+<script type="text/ng-template" id="headerCheckbox.html">
+  <input type="checkbox" ng-init="userTable.checkedAll = true" ng-model="userTable.checkedAll" class="select-all" value="" />
+</script>
+
+	<div class="container" ng-if="tokenIsValid && !getSurveyIsLoading">
+		<div class="row" ng-repeat="(key, notification) in notifications">
+			<div class="l-grid__item u-2/3 u-mb">
+	            <div class="c-callout" ng-class=" notification.type == 'error' ? 'c-callout--error' : 'c-callout--success'">
+	              <button aria-label="close" class="c-callout__close" ng-click="closeNotification(key)"></button>
+	              <strong class="c-callout__title"><span dir="ltr">{{ notification.title }}</span></strong>
+	              <p class="c-callout__paragraph">{{ notification.message }}</p>
+	            </div>
+	         </div>
+		</div>
+		<div class="row-fluid">
+			<form name="surveyForm" class="form-horizontal">
+				<fieldset>
+					<legend class=""><h2>Select Message</h2></legend>
+					<!-- Name -->
+					<div class="col-md-8">
+						<div class="form-group">
+							<label for="sel1">Select Survey:</label>
+							<select name="surveyInput" class="form-control" id="surveyTemplate" ng-model="surveyFormSelections.survey" ng-change="handleSurveyChange(surveyFormSelections.survey)" ng-options="survey as survey.title for survey in surveys" required>
+								<option value="" disabled>--- Choose a survey ({{surveys.length}})---</option>
+							</select>
+						</div>
+
+						<div class="form-group" ng-show="surveyFormSelections.survey">
+							<div class="survey-collector survey-collector--collector" ng-show="collectors.length >= 1">
+								<label for="sel1">Select Email Collector:</label>
+								<select name="collectorInput" class="form-control" id="surveyCollector" required ng-model="surveyFormSelections.collector" ng-change="handleCollectorChange(surveyFormSelections.collector)" ng-options="collector as collector.name for collector in collectors">
+									<option value="" disabled>--- Choose a collector ({{collectors.length}}) ---</option>
+								</select>
+							</div>
+							<div class="survey-collector survey-collector--collector text-center" ng-show="collectors.length < 1 && !getCollectorsIsLoading">
+								<b>No email collectors found.</b>
+							</div>
+							<div class="survey-collector survey-collector--collector text-center" ng-show="getCollectorsIsLoading">
+								<b>Loading email collectors...</b>
+							</div>
+						</div>
+
+						<div class="form-group" ng-show="surveyFormSelections.collector">
+							<div class="survey-collector survey-collector--invitation-message" ng-show="messages.length >= 1">
+								<label for="sel1">Select Invitation Message:</label>
+								<select name="messageInput" class="form-control" id="surveyMessage" required ng-model="surveyFormSelections.message" ng-change="handleMessageChange(surveyFormSelections.message)" ng-options="message as message.displayed_title for message in messages">
+									<option value="" disabled>--- Choose an invitation message ({{messages.length}}) ---</option>
+								</select>
+							</div>
+							<div class="survey-collector survey-collector--invitation-message text-center" ng-show="messages.length < 1 && !getMessagesIsLoading">
+								<b>No available invitation messages found.</b>
+							</div>
+							<div class="survey-collector survey-collector--invitation-message text-center" ng-show="getMessagesIsLoading">
+								<b>Loading available invitation messages...</b>
+							</div>
+						</div>
+					</div>
+				</fieldset>
+			</form>
+		</div>
+
+		<div class="row-fluid">
+			<ng-form name="userForm" class="filters">
+				<fieldset>
+					<legend class=""><h2>Select Users</h2></legend>
+					<!-- <div class="filters filters-search-string" ng-if="searchString">
+						<code>	{{ searchString }}</code>
+					</div> -->
+					<div class="row">
+						<div class="col-md-8">
+							<h3>Filters</h3>
+							<form class="form-group" name="filterForms">
+								<label class="filters-condition-label"></label>
+								<div class="filters-body">
+									<div class="panel panel-default" ng-repeat="(key, filter) in filters" ng-form="filterForm">
+										<div class="panel-heading panel-custom-header hooverable">
+											<a data-toggle="collapse" href="#id_panel" aria-expanded="true">
+												<div class="panel-title">
+													<button type="button" class="close pull-right" aria-label="Close" ng-click="removeFilter(key)">
+														<span>&times;</span>
+													</button>
+												</div>
+											</a>
+										</div>
+										<div class="panel-body">
+											<div class="col-md-4">
+												<div class="form-group" ng-class="{ 'has-error' : filterForm.filterKey.$invalid}">
+													<select name="filterKey" class="form-control" id="filter-key" ng-model="filter.selectedField" ng-options="filterKey as filterKey.title for filterKey in filterKeys" ng-change="handleFilterFieldChange(filter)" required>
+													</select>
+													<p ng-show="filterForm.filterKey.$invalid" class="help-block">Filter Field is required.</p>
+												</div>
+											</div>
+											<div class="col-md-4">
+												<div class="form-group" ng-class="{ 'has-error' : filterForm.filterOperator.$invalid}">
+													<select name="filterOperator" class="form-control" name="filter-operator" ng-model="filter.selectedOperator" ng-options="operator as operator.name for operator in getOperatorsByType(filter.selectedField.type)" required>
+													</select>
+													<p ng-show="filterForm.filterOperator.$invalid" class="help-block">Operator is required.</p>
+												</div>
+											</div>
+											<div class="col-md-4">
+												<div class="form-group"  ng-class="{ 'has-error' : filterForm.filterValue.$invalid}">
+													<span ng-switch="filter.selectedField.type">
+														<select name="filterValue" class="form-control" id="filter-dropdown-value" ng-init="loadDropdownOptions(filter.selectedField)" ng-model="filter.selectedValue" ng-options="option.value as option.name for option in filter.selectedField.options" ng-switch-when="dropdown"></select>
+														<input name="filterValue" type="date" class="form-control" placeholder="Select a date" ng-model="filter.selectedValue"  ng-switch-when="date" required>
+														<input name="filterValue" type="number" class="form-control" placeholder="Enter an integer" ng-model="filter.selectedValue"  ng-switch-when="integer" required>
+														<input name="filterValue" type="text" class="form-control" id="filter-text-value" ng-model="filter.selectedValue" ng-switch-default>
+														<p ng-show="filterForm.filterField.$invalid" class="help-block">Value is required</p>
+													</span>
+												</div>
+											</div>
+										</div>
+									</div>
+									<button type="button" class="c-btn c-btn--primary" ng-click="addFilter()" ng-disabled="filterForms.$invalid" ng-class="{ 'is-disabled' : filterForms.$invalid}">Add new filter</button>
+								</div>
+								<div class="filters-action text-right">
+									<button type="button" class="c-btn" ng-click="clearFilters()" ng-disabled="filters.length < 1" ng-class="{ 'is-disabled' : filters.length < 1}">Clear</button>
+									<button type="button" class="c-btn c-btn--primary" ng-click="searchUser()" ng-disabled="filterForms.$invalid || searchUserIsLoading" ng-class="{ 'is-disabled' : filterForms.$invalid || searchUserIsLoading}">Search</button>
+								</div>
+							</form>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-md-8">
+							<h3>Results <span ng-if="userTable.userList.length >= 1">({{userTable.userList.length}})</span></h3>
+							<div class="form-group">
+								<div class="result" ng-if="userTable.userList.length >= 1 && !searchUserIsLoading">
+									<table ng-table="userListTableParams" class="table table-condensed table-bordered table-striped">
+										<colgroup>
+										  <col width="5%"/>
+										  <col width="55%"/>
+										  <col width="35%"/>
+										  <col width="5%"/>
+										</colgroup>
+										<tr ng-repeat="(key, user) in $data">
+											<td title="'No'">{{(userListTableParams.page() - 1) * userListTableParams.count() + $index + 1}}</td>
+											<td title="'Name'" sortable="'name'"><a href="https://{{subdomain}}.zendesk.com/agent/users/{{user.id}}">{{user.name}}</a></td>
+											<td title="'Email'" sortable="'email'">{{user.email}}</td>
+											<td title="'Dealer'" sortable="'asDealer'">{{user.asDealer}}</td>
+											<td header="'headerCheckbox.html'">
+												<input type="checkbox" name="checked" ng-model="user.checked">
+											</td>
+										</tr>
+									</table>								
+									<div id="submit" class="results-action text-right">
+										<button type="button" class="c-btn c-btn--primary" id="submit_sm" style="width: 25%"
+										ng-click="submit()" ng-disabled="submitButtonDisabled || surveyForm.$invalid || userForm.$invalid || submitToSurveyMonkeyIsLoading">Submit to Survey Monkey</button>
+									</div>
+								</div>
+								<div class="result text-center" ng-if="userTable.userList.length < 1 && !searchUserIsLoading">
+									<b>No user found</b>
+								</div>
+								<div class="result text-center" ng-if="searchUserIsLoading">
+									<b>Loading users...</b>
+								</div>
+							</div>
+						</div>
+					</div>
+				</fieldset>
+			</form>
+		</div>
+
+	</div>
+
+</st-blurred-dialog-region >
