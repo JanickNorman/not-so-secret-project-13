@@ -1,15 +1,14 @@
 angular.module('services').service("surveyMonkeyService", ['$http', '$q', 'ZAF_CONTEXT', 'ZAF_METADATA', function($http, $q, ZAF_CONTEXT, ZAF_METADATA) {
-	
-	var SM_TOKEN = ZAF_METADATA.settings.survey_monkey_token ? ZAF_METADATA.settings.survey_monkey_token : "";
 
-	// var SM_TOKEN = "fake-token";
+	// var SM_TOKEN = ZAF_METADATA.settings.survey_monkey_token ? ZAF_METADATA.settings.survey_monkey_token : "";
 
+	// var SM_TOKEN = "apzqGssqUXFDD35T4S1gtQmu1hKOw3OyYAo5yO4B4JndJ9-P1vBoR4IMcKJELzmX96Z1sShRfp5k-Hr6misSJU0ekatmuF-JabnOag2BiDObFgfFoCnzOQnB0mY2cnVB";
+	// var SM_TOKEN = "ylknOAfU7xHtNw0hpLlv88WCOurWy9BHN-pOgmJsHAm2cZtmxagTDNymDj-1zl08gQjxsJKIr4x4cch0c-XPu5pgCjxAcbVc-KuUBNpzXe2BOg4OnamC5Fq1Lxo8OLQ4";
 	//Tes-fif-itnegration app
-	// console.log(ZAF_CONTEXT); 
+	// console.log(ZAF_CONTEXT);
 	// console.log(ZAF_METADATA.settings.survey_monkey_token);
 	var SM_TOKEN = ZAF_METADATA.settings.survey_monkey_token ? ZAF_METADATA.settings.survey_monkey_token : "";
-	
-	
+
 	return {
 		getSurveys: function() {
 			var cancel = $q.defer();
@@ -89,6 +88,23 @@ angular.module('services').service("surveyMonkeyService", ['$http', '$q', 'ZAF_C
 			var cancel = $q.defer();
 			var config = {
 				url: 'https://api.surveymonkey.net/v3/collectors/'+collectorId+'/messages/'+messageId,
+				type: 'GET',
+				dataType: "json",
+				async: false,
+				cors: true,
+				contentType: 'application/json',
+				headers: {
+					"Authorization": "Bearer " + SM_TOKEN
+				},
+				timeout: cancel.promise,
+				cancel: cancel
+			}
+			return $http(config);
+		},
+		get: function(url) {
+			var cancel = $q.defer();
+			var config = {
+				url: url,
 				type: 'GET',
 				dataType: "json",
 				async: false,
@@ -218,6 +234,33 @@ angular.module('services').service("surveyMonkeyService", ['$http', '$q', 'ZAF_C
 				deferred.reject(error);
 			});
 			return deferred.promise;
+		},
+
+		loadRecipients: function(collectorId, messageId) {
+			var self = this;
+			var deferred = $q.defer();
+			var data = [];
+
+			function loadAll(url) {
+				self.get(url).then(response => {
+					console.log(response); debugger;
+					var next_page = response.data.links.next;
+					var results = response.data.data;
+
+					results.forEach(result => {
+						data.push(result);
+					});
+					if (next_page != null) {
+						return loadAll(next_page);
+					}
+					return deferred.resolve(data);
+				})
+				.catch((error) => {
+					return deferred.reject(error);
+				})
+			}
+			loadAll('https://api.surveymonkey.net/v3/collectors/' + collectorId + '/messages/' + messageId + '/recipients?per_page=100');
+			return deferred.promise
 		}
 	}
 }]);

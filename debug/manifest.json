@@ -16,8 +16,38 @@
       "type": "text",
       "secure": false,
       "required": true
+  },
+    {
+    "name": "dealer_field_id",
+    "type": "text",
+    "secure": false,
+    "required": true
+    },
+    {
+    "name": "cabang_field_id",
+    "type": "text",
+    "secure": false,
+    "required": true
+    },
+    {
+    "name": "quadran_field_id",
+    "type": "text",
+    "secure": false,
+    "required": true
+    },
+    {
+    "name": "panel_field_id",
+    "type": "text",
+    "secure": false,
+    "required": true
+    },
+    {
+    "name": "survey_response_identifier_field_id",
+    "type": "text",
+    "secure": false,
+    "required": true
     }
   ],
-  "version": "0.2.0-beta",
+  "version": "0.3.0-beta",
   "frameworkVersion": "2.0"
 }

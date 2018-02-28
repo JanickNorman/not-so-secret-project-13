@@ -1,4 +1,30 @@
-angular.module('controllers').controller('MainController', ['$scope', '$http', '$element', '$window', 'zendeskService', 'surveyMonkeyService', 'filtersFactory', 'searchStringBuilder', 'NgTableParams', 'Notification', '$modal', 'ZAF_CONTEXT', function($scope, $http, $element, $window, zendeskService, surveyMonkeyService, filtersFactory, searchStringBuilder, NgTableParams, Notification, $modal, ZAF_CONTEXT) {
+angular.module('controllers').controller('MainController', ['$scope', '$http', '$element', '$window', 'zendeskService', 'surveyMonkeyService', 'filtersFactory', 'searchStringBuilder', 'NgTableParams', 'Notification', '$modal', 'ZAF_CONTEXT', 'ZAF_METADATA', function($scope, $http, $element, $window, zendeskService, surveyMonkeyService, filtersFactory, searchStringBuilder, NgTableParams, Notification, $modal, ZAF_CONTEXT, ZAF_METADATA) {
+    // var tickets = [];
+    // for (var i = 0; i < 100; i++) {
+    //     var ticket = {
+    //         subject: "Tes Dummy" + i,
+    //         comment: {body: "Ikutan bikin dummy ticket " + i},
+    //         requester: {name: "dummy"+i, email: "dummy"+i+"@tes.com"}
+    //     };
+    //     tickets.push(ticket);
+    // }
+    // for (var i = 0; i < 102; i++) {
+    //     var ticket = {
+    //         subject: "Tes Dummy" + i,
+    //         comment: {body: "Ikutan bikin dummy ticket " + i},
+    //         requester: {name: "dummy"+i, email: "dummy"+i+"@tastestus.com"}
+    //     };
+    //     tickets.push(ticket);
+    // }
+    // console.log(tickets); debugger;
+    // zendeskService.createManyTicketsBulk(tickets)
+    // .then((jobs) => {
+    //     console.log(jobs); debugger;
+    // })
+    // .catch((error) => {
+    //     console.log(error); debugger;
+    // });
+
     $scope.subdomain = ZAF_CONTEXT.account.subdomain;
     $scope.notifications = [];
     $scope.surveys = [];
@@ -32,8 +58,8 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
             survey: null,
             collector: null,
             message: null
-        }; 
-        $scope.submitButtonDisabled = false;       
+        };
+        $scope.submitButtonDisabled = false;
 
         $scope.getSurveyIsLoading = true;
         surveyMonkeyService.getSurveys().then(function(result) {
@@ -42,6 +68,7 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
             $scope.getSurveyIsLoading = false;
             $scope.surveys = surveys;
         }, function(response) {
+            console.log(response); debugger;
             var status = response.status;
             var message = response.data.error.message;
 
@@ -182,9 +209,13 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
 
     $scope.submit = function() {
         $scope.submitButtonDisabled = true;
+        var surveyId = $scope.surveyFormSelections.survey.id;
+        var surveyTitle = $scope.surveyFormSelections.survey.title;
         var collectorId = $scope.surveyFormSelections.collector.id;
         var messageId = $scope.surveyFormSelections.message.id;
 
+
+        // Build survey monkey compatible recipients adding
         var data = {
             contacts: []
         };
@@ -192,11 +223,13 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
             if (!user.checked) {
                 return false;
             }
+            // data.contacts.push({email: user.email})
             data.contacts.push({email: user.email})
         });
 
         $scope.submitToSurveyMonkeyIsLoading = true;
-        surveyMonkeyService.addRecipients(collectorId, messageId, data).then(function(response) {
+        surveyMonkeyService.addRecipients(collectorId, messageId, data)
+        .then(function(response) {
             var succeeded = response.data.succeeded;
             var duplicate = response.data.duplicate;
             var existing = response.data.existing;
@@ -206,16 +239,92 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
             var notification_message = 'on survey: \"'+ $scope.surveyFormSelections.survey.title +'\"; succeeded: ' + succeeded.length + ', duplicate: ' + duplicate.length + ', existing: ' + existing.length;
             $scope.notifySuccess(notification_title, notification_message);
 
-            return surveyMonkeyService.sendMessage(collectorId, messageId, {});
+            // Load recipients before sending the invitation message
+            return surveyMonkeyService.loadRecipients(collectorId, messageId)
+                    .then((recipients) => {
+                        // Filter and append contact with succesfull recipients
+                        var userRecipients = recipients.reduce((filteredUser, recipient) => {
+                            var users = $scope.userTable.userList;
+                            for (var index in users) {
+                                var user = users[index];
+                                if (recipient.email == user.email) {
+                                    user.recipient_id = recipient.id;
+                                    filteredUser.push({...user});
+                                    break;
+                                }
+                            }
+                            return filteredUser;
+                        }, []);
+
+                        console.log(userRecipients); debugger;
+                        return surveyMonkeyService.sendMessage(collectorId, messageId, {})
+                                .then((response) => {
+                                    response.data.recipients = userRecipients;
+                                    return response
+                                });
+                    })
+
+            // return surveyMonkeyService.sendMessage(collectorId, messageId, {})
+            //         .then((sendMessageResponse) => {
+            //             return surveyMonkeyService.loadRecipients(collectorId, messageId)
+            //                     .then((recipients) => {
+            //                         sendMessageResponse.recipients = recipients;
+            //                         return sendMessageResponse;
+            //                     })
+            //         });
         })
         .then(function(response) {
+            var recipients = response.data.recipients;
             var scheduled_date = response.data.scheduled_date;
-            var date = new Date(scheduled_date).toString();            
-            
+            var date = new Date(scheduled_date).toString();
+
             var notification_title = "Success sending survey";
             var notification_message = "Scheduled at: " + date;
             $scope.notifySuccess(notification_title, notification_message);
 
+            console.log(ZAF_METADATA.settings); debugger;
+            // create many tickets TO DO: Iterate so that it could create more than 100 tickets
+            var tickets = recipients.map(recipient => {
+                var subject = surveyTitle + " - " + recipient.email;
+                var body = "Survey is scheduled at " + date;
+                var email = recipient.email ? recipient.email : "unknown@tes.com";
+                var name = email.substring(0, email.indexOf("@"));
+
+                var dealer_field_id = ZAF_METADATA.settings.dealer_field_id ? ZAF_METADATA.settings.dealer_field_id : 360000032316;
+                var cabang_field_id = ZAF_METADATA.settings.cabang_field_id ? ZAF_METADATA.settings.cabang_field_id : 360000032336;
+                var quadran_field_id = ZAF_METADATA.settings.quadran_field_id ? ZAF_METADATA.settings.quadran_field_id : 360000032375;
+                var panel_field_id = ZAF_METADATA.settings.panel_field_id ? ZAF_METADATA.settings.panel_field_id : 360000032356;
+                var survey_response_identifier_id = ZAF_METADATA.settings.survey_response_identifier_field_id ? ZAF_METADATA.settings.survey_response_identifier_field_id : 360000033575;
+                // var dealer_field_id = 360000032316;
+                // var cabang_field_id = 360000032336;
+                // var quadran_field_id = 360000032375;
+                // var panel_field_id = 360000032356;
+                // var survey_response_identifier_id = 360000033575;
+                var survey_response_identifier_value = "smres_id_" + surveyId + "_" + collectorId + "_" + recipient.id;
+                var custom_fields = [];
+                custom_fields.push({id: dealer_field_id, value: recipient.dealer});
+                custom_fields.push({id: cabang_field_id, value: recipient.cabang});
+                custom_fields.push({id: quadran_field_id, value: recipient.quadran});
+                custom_fields.push({id: panel_field_id, value: recipient.panel});
+                custom_fields.push({id: survey_response_identifier_id, value: survey_response_identifier_value});
+
+                var ticket = {
+                    subject: subject,
+                    comment: {body: body},
+                    requester: {name: name, email: recipient.email},
+                    custom_fields: custom_fields
+                };
+                return ticket;
+            })
+            console.log(tickets);debugger;
+            // return zendeskService.createManyTicketsBulk(tickets);
+            return zendeskService.createManyTicketsBulk(tickets);
+            // return zendeskService.createManyTickets({tickets: tickets});
+        })
+        .then((response) => {
+            var numOfTickets = "x";
+            $scope.notifySuccess("Processing tickets", "start creating " + numOfTickets + " tickets");
+            console.log(response); debugger;
             $scope.submitToSurveyMonkeyIsLoading = false;
             $scope.init();
         })
