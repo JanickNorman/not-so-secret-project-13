@@ -1,0 +1,53 @@
+{
+  "name": "Survey Monkey FIF Integration",
+  "author": {
+    "name": "Zendesk",
+    "email": "us@treessolutions.com",
+    "url": ""
+  },
+  "defaultLocale": "en",
+  "private": true,
+  "location": { "zendesk":
+    {"nav_bar": "assets/index.html" }
+  },
+  "parameters": [
+    {
+        "name": "survey_monkey_token",
+        "type": "text",
+        "secure": false,
+        "required": true
+    },
+    {
+        "name": "dealer_field_id",
+        "type": "text",
+        "secure": false,
+        "required": true
+    },
+    {
+        "name": "cabang_field_id",
+        "type": "text",
+        "secure": false,
+        "required": true
+    },
+    {
+        "name": "quadran_field_id",
+        "type": "text",
+        "secure": false,
+        "required": true
+    },
+    {
+        "name": "panel_field_id",
+        "type": "text",
+        "secure": false,
+        "required": true
+    },
+    {
+        "name": "survey_response_identifier_field_id",
+        "type": "text",
+        "secure": false,
+        "required": true
+    }
+  ],
+  "version": "0.3.0-beta",
+  "frameworkVersion": "2.0"
+}

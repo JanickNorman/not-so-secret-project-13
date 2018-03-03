@@ -184,6 +184,111 @@ angular.module('services').service("zendeskService", ['$q', 'ZAFClient', 'search
 				});
 			}
 			return deferred.promise
+	  },
+	  loadOrganizationsByName: function() {
+		// var mockObject = {
+		// 	"D 1111": {
+		// 		"url": "https://treesdemo11496822632.zendesk.com/api/v2/organizations/360001148015.json",
+		// 		"id": 360001148015,
+		// 		"name": "D 1111",
+		// 		"shared_tickets": false,
+		// 		"shared_comments": false,
+		// 		"external_id": null,
+		// 		"created_at": "2017-10-24T07:40:18Z",
+		// 		"updated_at": "2017-10-24T07:40:18Z",
+		// 		"domain_names": [],
+		// 		"details": "",
+		// 		"notes": "",
+		// 		"group_id": null,
+		// 		"tags": [],
+		// 		"organization_fields": {}
+		// 	},
+		// 	"D 2222": {
+		// 		"url": "https://treesdemo11496822632.zendesk.com/api/v2/organizations/360001148035.json",
+		// 		"id": 360001148035,
+		// 		"name": "D 2222",
+		// 		"shared_tickets": false,
+		// 		"shared_comments": false,
+		// 		"external_id": null,
+		// 		"created_at": "2017-10-25T07:40:18Z",
+		// 		"updated_at": "2017-10-25T07:40:18Z",
+		// 		"domain_names": [],
+		// 		"details": "",
+		// 		"notes": "",
+		// 		"group_id": null,
+		// 		"tags": [],
+		// 		"organization_fields": {}
+		// 	},
+		// 	"D 3333": {
+		// 		"url": "https://treesdemo11496822632.zendesk.com/api/v2/organizations/360001148055.json",
+		// 		"id": 360001148055,
+		// 		"name": "D 3333",
+		// 		"shared_tickets": false,
+		// 		"shared_comments": false,
+		// 		"external_id": null,
+		// 		"created_at": "2017-10-26T07:40:18Z",
+		// 		"updated_at": "2017-10-26T07:40:18Z",
+		// 		"domain_names": [],
+		// 		"details": "",
+		// 		"notes": "",
+		// 		"group_id": null,
+		// 		"tags": [],
+		// 		"organization_fields": {}
+		// 	},
+		// 	"D 4444": {
+		// 		url: "https://treesdemo11496822632.zendesk.com/api/v2/organizations/360001121016.json",
+		// 		id: 360001121016,
+		// 		name: "D 4444",
+		// 		shared_tickets: false,
+		// 		shared_comments: false,
+		// 		external_id: null,
+		// 		created_at: "2018-03-01T07:01:32Z",
+		// 		updated_at: "2018-03-01T07:01:32Z",
+		// 		domain_names: [ ],
+		// 		details: "",
+		// 		notes: "",
+		// 		group_id: null,
+		// 		tags: [ ],
+		// 		organization_fields: { }
+		// 	}
+		// };
+
+		var deferred = $q.defer();
+		var organizations = [];
+
+		function loadAll(url) {
+			client.request(url).then(response => {
+				console.log(response); debugger;
+				var next_page = response.next_page;
+				var results = response.organizations;
+
+				results.forEach(result => {
+					organizations.push(result);
+				});
+
+				if (next_page != null) {
+					return loadAll(next_page);
+				}
+				console.log(organizations); debugger;
+				var result = organizations.reduce((organizationsByName, organization) => {
+					if (!organizationsByName[organization.name]) {
+						organizationsByName[organization.name] = organization;
+					}
+
+					return organizationsByName;
+				}, {});
+				console.log(result); debugger;
+				return deferred.resolve(result);
+			})
+			.catch((error) => {
+				console.log(error); debugger;
+				return deferred.reject(error);
+			})
+		}
+		loadAll('/api/v2/organizations');
+
+		// deferred.resolve(mockObject);
+		return deferred.promise;
 	  }
 	};
 }]);

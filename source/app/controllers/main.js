@@ -1,30 +1,4 @@
-angular.module('controllers').controller('MainController', ['$scope', '$http', '$element', '$window', 'zendeskService', 'surveyMonkeyService', 'filtersFactory', 'searchStringBuilder', 'NgTableParams', 'Notification', '$modal', 'ZAF_CONTEXT', 'ZAF_METADATA', function($scope, $http, $element, $window, zendeskService, surveyMonkeyService, filtersFactory, searchStringBuilder, NgTableParams, Notification, $modal, ZAF_CONTEXT, ZAF_METADATA) {
-    // var tickets = [];
-    // for (var i = 0; i < 100; i++) {
-    //     var ticket = {
-    //         subject: "Tes Dummy" + i,
-    //         comment: {body: "Ikutan bikin dummy ticket " + i},
-    //         requester: {name: "dummy"+i, email: "dummy"+i+"@tes.com"}
-    //     };
-    //     tickets.push(ticket);
-    // }
-    // for (var i = 0; i < 102; i++) {
-    //     var ticket = {
-    //         subject: "Tes Dummy" + i,
-    //         comment: {body: "Ikutan bikin dummy ticket " + i},
-    //         requester: {name: "dummy"+i, email: "dummy"+i+"@tastestus.com"}
-    //     };
-    //     tickets.push(ticket);
-    // }
-    // console.log(tickets); debugger;
-    // zendeskService.createManyTicketsBulk(tickets)
-    // .then((jobs) => {
-    //     console.log(jobs); debugger;
-    // })
-    // .catch((error) => {
-    //     console.log(error); debugger;
-    // });
-
+    angular.module('controllers').controller('MainController', ['$scope', '$http', '$element', '$window', 'zendeskService', 'surveyMonkeyService', 'filtersFactory', 'searchStringBuilder', 'NgTableParams', 'Notification', '$modal', 'ZAF_CONTEXT', 'ZAF_METADATA', function($scope, $http, $element, $window, zendeskService, surveyMonkeyService, filtersFactory, searchStringBuilder, NgTableParams, Notification, $modal, ZAF_CONTEXT, ZAF_METADATA) {
     $scope.subdomain = ZAF_CONTEXT.account.subdomain;
     $scope.notifications = [];
     $scope.surveys = [];
@@ -68,31 +42,10 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
             $scope.getSurveyIsLoading = false;
             $scope.surveys = surveys;
         }, function(response) {
-            console.log(response); debugger;
-            var status = response.status;
-            var message = response.data.error.message;
-
-            $scope.getSurveyIsLoading = false;
-            if (status == 401) {
-                $scope.tokenIsValid = false;
-                $modal.open({
-                  templateUrl: 'invalid_token_template.html',
-                  backdrop: true,
-                  size: 'lg'
-                });
-                // Popeye.open('dialog_template.html', {msg: message});
-                return;
-            }
-
-            if (status == 429) {
-                var message = "We've detected too many request, please try again later";
-                $scope.notifyError("error", message);
-                return;
-            }
-
-            $scope.notifyError("error", message);
+            handleSurveyMonkeyError(response, (status, message) => {
+                $scope.getSurveyIsLoading = false;
+            });
         });
-
     }
 
     $scope.init();
@@ -125,6 +78,7 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
             $scope.collectors = collectors.filter(collector => collector.type == "email");
             $scope.getCollectorsIsLoading = false;
         }, function(error) {
+            handleSurveyMonkeyError(error, (status, message) => {});
             $scope.getCollectorsIsLoading = false;
         })
     }
@@ -151,6 +105,7 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
             });
             $scope.getMessagesIsLoading = false;
         }, function(error) {
+            handleSurveyMonkeyError(error, (status, message) => {});
             $scope.getMessagesIsLoading = false;
         })
     }
@@ -178,7 +133,7 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
             $scope.userListTableParams = userListTableParamsSetting($scope.userTable.userList);
             $scope.userListTableParams.reload();
             $scope.searchUserIsLoading = false;
-
+            console.log($scope.userTable.userList); debugger;
             $scope.$apply();
         }, function(error) {
             console.log(error);
@@ -209,11 +164,11 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
 
     $scope.submit = function() {
         $scope.submitButtonDisabled = true;
+        let selectedUsers = [];
         var surveyId = $scope.surveyFormSelections.survey.id;
         var surveyTitle = $scope.surveyFormSelections.survey.title;
         var collectorId = $scope.surveyFormSelections.collector.id;
         var messageId = $scope.surveyFormSelections.message.id;
-
 
         // Build survey monkey compatible recipients adding
         var data = {
@@ -223,11 +178,14 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
             if (!user.checked) {
                 return false;
             }
-            // data.contacts.push({email: user.email})
+
+            // WARNING this code is redundant
             data.contacts.push({email: user.email})
+            selectedUsers.push(user);
         });
 
         $scope.submitToSurveyMonkeyIsLoading = true;
+        let organizationsByName;
         surveyMonkeyService.addRecipients(collectorId, messageId, data)
         .then(function(response) {
             var succeeded = response.data.succeeded;
@@ -239,47 +197,57 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
             var notification_message = 'on survey: \"'+ $scope.surveyFormSelections.survey.title +'\"; succeeded: ' + succeeded.length + ', duplicate: ' + duplicate.length + ', existing: ' + existing.length;
             $scope.notifySuccess(notification_title, notification_message);
 
-            // Load recipients before sending the invitation message
+            // Decorate each user with its recipient_id
             return surveyMonkeyService.loadRecipients(collectorId, messageId)
                     .then((recipients) => {
                         // Filter and append contact with succesfull recipients
-                        var userRecipients = recipients.reduce((filteredUser, recipient) => {
-                            var users = $scope.userTable.userList;
+                        var users = selectedUsers;
+                        var userRecipients = recipients.reduce((filteredUsers, recipient) => {
                             for (var index in users) {
                                 var user = users[index];
                                 if (recipient.email == user.email) {
-                                    user.recipient_id = recipient.id;
-                                    filteredUser.push({...user});
+                                    // user.recipient_id = recipient.id;
+                                    var userRecipient = {...user};
+                                    userRecipient.recipient_id = recipient.id;
+                                    filteredUsers.push(userRecipient);
                                     break;
                                 }
                             }
-                            return filteredUser;
+                            return filteredUsers;
                         }, []);
 
                         console.log(userRecipients); debugger;
+
                         return surveyMonkeyService.sendMessage(collectorId, messageId, {})
                                 .then((response) => {
                                     response.data.recipients = userRecipients;
                                     return response
                                 });
                     })
-
-            // return surveyMonkeyService.sendMessage(collectorId, messageId, {})
-            //         .then((sendMessageResponse) => {
-            //             return surveyMonkeyService.loadRecipients(collectorId, messageId)
-            //                     .then((recipients) => {
-            //                         sendMessageResponse.recipients = recipients;
-            //                         return sendMessageResponse;
-            //                     })
-            //         });
+        })
+        .then((response) => {
+            return zendeskService.loadOrganizationsByName()
+            .then((result) => {
+                organizationsByName = result;
+                return response;
+            })
+            .catch(error => {
+                // Assign organizationsByName with null object incase of exception
+                organizationsByName = {
+                    "": {
+                        id: 0
+                    }
+                };
+                return response;
+            });
         })
         .then(function(response) {
             var recipients = response.data.recipients;
             var scheduled_date = response.data.scheduled_date;
             var date = new Date(scheduled_date).toString();
-
             var notification_title = "Success sending survey";
             var notification_message = "Scheduled at: " + date;
+
             $scope.notifySuccess(notification_title, notification_message);
 
             console.log(ZAF_METADATA.settings); debugger;
@@ -295,12 +263,9 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
                 var quadran_field_id = ZAF_METADATA.settings.quadran_field_id ? ZAF_METADATA.settings.quadran_field_id : 360000032375;
                 var panel_field_id = ZAF_METADATA.settings.panel_field_id ? ZAF_METADATA.settings.panel_field_id : 360000032356;
                 var survey_response_identifier_id = ZAF_METADATA.settings.survey_response_identifier_field_id ? ZAF_METADATA.settings.survey_response_identifier_field_id : 360000033575;
-                // var dealer_field_id = 360000032316;
-                // var cabang_field_id = 360000032336;
-                // var quadran_field_id = 360000032375;
-                // var panel_field_id = 360000032356;
-                // var survey_response_identifier_id = 360000033575;
                 var survey_response_identifier_value = "smres_id_" + surveyId + "_" + collectorId + "_" + recipient.id;
+                var ticket_form_id = ZAF_METADATA.settings.ticket_form_id ? ZAF_METADATA.settings.ticket_form_id : 360000001216;
+
                 var custom_fields = [];
                 custom_fields.push({id: dealer_field_id, value: recipient.dealer});
                 custom_fields.push({id: cabang_field_id, value: recipient.cabang});
@@ -312,14 +277,20 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
                     subject: subject,
                     comment: {body: body},
                     requester: {name: name, email: recipient.email},
-                    custom_fields: custom_fields
+                    custom_fields: custom_fields,
+                    ticket_form_id: ticket_form_id
                 };
+
+                // assign recipient to its proper organization
+                var organization_name = recipient.cabang ? "D " + recipient.cabang : "";
+                var organization_id = organizationsByName[organization_name] ? organizationsByName[organization_name].id : 0;
+                if (organization_id) ticket["organization_id"] = organization_id;
+                console.log(ticket); debugger;
                 return ticket;
             })
             console.log(tickets);debugger;
-            // return zendeskService.createManyTicketsBulk(tickets);
+
             return zendeskService.createManyTicketsBulk(tickets);
-            // return zendeskService.createManyTickets({tickets: tickets});
         })
         .then((response) => {
             var numOfTickets = "x";
@@ -375,6 +346,32 @@ angular.module('controllers').controller('MainController', ['$scope', '$http', '
         $scope.notifications.splice(index, 1);
     }
 
+    // Handle only those from survey monkey api
+    function handleSurveyMonkeyError(response, callback) {
+        var status = response.status;
+        var message = response.data.error.message;
+
+        callback(status, message);
+
+        if (status == 401) {
+            $scope.tokenIsValid = false;
+            $modal.open({
+              templateUrl: 'invalid_token_template.html',
+              backdrop: true,
+              size: 'lg'
+            });
+            // Popeye.open('dialog_template.html', {msg: message});
+            return;
+        }
+
+        if (status == 429) {
+            var message = "We've detected too many request, don't worry, please try again later";
+            $scope.notifyError("error", message);
+            return;
+        }
+
+        $scope.notifyError("error", message);
+    }
 
     function userListTableParamsSetting(data) {
         return new NgTableParams({count: 10}, { counts: [], dataset: data});
