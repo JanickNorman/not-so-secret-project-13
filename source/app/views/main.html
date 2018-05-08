@@ -135,10 +135,9 @@
 											<td title="'No'">{{(userListTableParams.page() - 1) * userListTableParams.count() + $index + 1}}</td>
 											<td title="'Name'" sortable="'name'"><a href="https://{{subdomain}}.zendesk.com/agent/users/{{user.id}}">{{user.name}}</a></td>
 											<td title="'Email'" sortable="'email'">{{user.email}}</td>
-											<td title="'Dealer'" sortable="'asDealer'">{{user.dealer}}</td>
+											<td title="'Dealer'" sortable="'dealer'">{{user.dealer}}</td>
                                             <td title="'Cabang'" sortable="'cabang'">{{user.cabang}}</td>
                                             <td title="'Quadran'" sortable="'quadran'">{{user.quadran}}</td>
-                                            <td title="'Panel'" sortable="'panel'">{{user.panel}}</td>
 											<td header="'headerCheckbox.html'">
 												<input type="checkbox" name="checked" ng-model="user.checked">
 											</td>

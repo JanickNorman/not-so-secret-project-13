@@ -100,8 +100,8 @@ angular.module('services').factory('filtersFactory', ['$http', '$q', 'zendeskSer
 	return {
 		getData: function() {
 			return zendeskService.getUserFields().then(function(data) {
-				var data = originalUserFields.concat(data.user_fields);
-				return data;
+				var result = originalUserFields.concat(data.user_fields);
+				return result;
 			});
 		}
 	}

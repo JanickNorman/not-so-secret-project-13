@@ -1,4 +1,5 @@
-    angular.module('controllers').controller('MainController', ['$scope', '$http', '$element', '$window', 'zendeskService', 'surveyMonkeyService', 'filtersFactory', 'searchStringBuilder', 'NgTableParams', 'Notification', '$modal', 'ZAF_CONTEXT', 'ZAF_METADATA', function($scope, $http, $element, $window, zendeskService, surveyMonkeyService, filtersFactory, searchStringBuilder, NgTableParams, Notification, $modal, ZAF_CONTEXT, ZAF_METADATA) {
+angular.module('controllers').controller('MainController', ['$scope', '$http', '$element', '$window', 'zendeskService', 'surveyMonkeyService', 'filtersFactory', 'searchStringBuilder', 'NgTableParams', '$modal', 'ZAF_CONTEXT', 'ZAF_METADATA', function($scope, $http, $element, $window, zendeskService, surveyMonkeyService, filtersFactory, searchStringBuilder, NgTableParams, $modal, ZAF_CONTEXT, ZAF_METADATA) {
+
     $scope.subdomain = ZAF_CONTEXT.account.subdomain;
     $scope.notifications = [];
     $scope.surveys = [];
@@ -75,12 +76,12 @@
         $scope.surveyFormSelections.message = null;
 
         surveyMonkeyService.loadCollectorsWithDetail(surveyId).then(function(collectors) {
-            $scope.collectors = collectors.filter(collector => collector.type == "email");
+            $scope.collectors = collectors.filter(function(collector){ return collector.type === "email"});
             $scope.getCollectorsIsLoading = false;
         }, function(error) {
             handleSurveyMonkeyError(error, (status, message) => {});
             $scope.getCollectorsIsLoading = false;
-        })
+        });
     }
 
     $scope.handleCollectorChange = function(selectedCollector) {
@@ -101,7 +102,7 @@
                 var ceilingNumber = array.length <= 10 ? array.length : 10;
                 var name = "Invitation message " + (ceilingNumber - index);
                 message.displayed_title = name + ": \"" + message.subject + "\"";
-                return message.status == 'not_sent' && !message.is_scheduled;
+                return message.status === 'not_sent' && !message.is_scheduled;
             });
             $scope.getMessagesIsLoading = false;
         }, function(error) {
@@ -193,37 +194,42 @@
             var existing = response.data.existing;
             var total_succeess = succeeded.length + existing.length;
 
-            var notification_title = 'Success adding '+ total_succeess +' recipients';
-            var notification_message = 'on survey: \"'+ $scope.surveyFormSelections.survey.title +'\"; succeeded: ' + succeeded.length + ', duplicate: ' + duplicate.length + ', existing: ' + existing.length;
+            var notification_title = 'Success adding recipients';
+            var notification_message = 'on survey: \"'+ $scope.surveyFormSelections.survey.title +'\"; duplicate: ' + duplicate.length + ', existing: ' + existing.length + ", total: " + total_succeess;
             $scope.notifySuccess(notification_title, notification_message);
 
             // Decorate each user with its recipient_id
             return surveyMonkeyService.loadRecipients(collectorId, messageId)
-                    .then((recipients) => {
-                        // Filter and append contact with succesfull recipients
-                        var users = selectedUsers;
-                        var userRecipients = recipients.reduce((filteredUsers, recipient) => {
-                            for (var index in users) {
-                                var user = users[index];
-                                if (recipient.email == user.email) {
-                                    // user.recipient_id = recipient.id;
-                                    var userRecipient = {...user};
-                                    userRecipient.recipient_id = recipient.id;
-                                    filteredUsers.push(userRecipient);
-                                    break;
-                                }
-                            }
-                            return filteredUsers;
-                        }, []);
+            .then((recipients) => {
+                console.log(recipients); debugger;
 
-                        console.log(userRecipients); debugger;
+                // Populate recipient with user information
+                var users = selectedUsers;
+                var userRecipients = recipients.reduce((filteredUsers, recipient) => {
+                    for (var index in users) {
+                        var user = users[index];
+                        if (recipient.email === user.email) {
+                            console.log(user); debugger;
 
-                        return surveyMonkeyService.sendMessage(collectorId, messageId, {})
-                                .then((response) => {
-                                    response.data.recipients = userRecipients;
-                                    return response
-                                });
-                    })
+                            var userRecipient = JSON.parse(JSON.stringify(user));
+
+                            // userRecipient.recipient_id = recipient.id; DULU
+                            userRecipient.id = recipient.id;
+                            filteredUsers.push(userRecipient);
+                            break;
+                        }
+                    }
+                    return filteredUsers;
+                }, []);
+
+                console.log(userRecipients); debugger;
+
+                return surveyMonkeyService.sendMessage(collectorId, messageId, {})
+                .then((response) => {
+                    response.data.recipients = userRecipients;
+                    return response
+                });
+            })
         })
         .then((response) => {
             return zendeskService.loadOrganizationsByName()
@@ -232,7 +238,7 @@
                 return response;
             })
             .catch(error => {
-                // Assign organizationsByName with null object incase of exception
+                // Assign organizationsByName with null object in case of exception
                 organizationsByName = {
                     "": {
                         id: 0
@@ -258,19 +264,19 @@
                 var email = recipient.email ? recipient.email : "unknown@tes.com";
                 var name = email.substring(0, email.indexOf("@"));
 
-                var dealer_field_id = ZAF_METADATA.settings.dealer_field_id ? ZAF_METADATA.settings.dealer_field_id : 360000032316;
-                var cabang_field_id = ZAF_METADATA.settings.cabang_field_id ? ZAF_METADATA.settings.cabang_field_id : 360000032336;
-                var quadran_field_id = ZAF_METADATA.settings.quadran_field_id ? ZAF_METADATA.settings.quadran_field_id : 360000032375;
-                var panel_field_id = ZAF_METADATA.settings.panel_field_id ? ZAF_METADATA.settings.panel_field_id : 360000032356;
-                var survey_response_identifier_id = ZAF_METADATA.settings.survey_response_identifier_field_id ? ZAF_METADATA.settings.survey_response_identifier_field_id : 360000033575;
+                var dealer_field_id = ZAF_METADATA.settings.dealer_field_id ? ZAF_METADATA.settings.dealer_field_id : 3333333330; //360000032316
+                var cabang_field_id = ZAF_METADATA.settings.cabang_field_id ? ZAF_METADATA.settings.cabang_field_id : 3333333331;  //360000032336
+                var quadran_field_id = ZAF_METADATA.settings.quadran_field_id ? ZAF_METADATA.settings.quadran_field_id : 3333333332; //360000032375
+                // var panel_field_id = ZAF_METADATA.settings.panel_field_id ? ZAF_METADATA.settings.panel_field_id : 360000032356;
+                var survey_response_identifier_id = ZAF_METADATA.settings.survey_response_identifier_field_id ? ZAF_METADATA.settings.survey_response_identifier_field_id : 0; //360000033575
                 var survey_response_identifier_value = "smres_id_" + surveyId + "_" + collectorId + "_" + recipient.id;
-                var ticket_form_id = ZAF_METADATA.settings.ticket_form_id ? ZAF_METADATA.settings.ticket_form_id : 360000001216;
+                var ticket_form_id = ZAF_METADATA.settings.ticket_form_id ? ZAF_METADATA.settings.ticket_form_id : 3333333334; //360000001216
 
                 var custom_fields = [];
                 custom_fields.push({id: dealer_field_id, value: recipient.dealer});
                 custom_fields.push({id: cabang_field_id, value: recipient.cabang});
                 custom_fields.push({id: quadran_field_id, value: recipient.quadran});
-                custom_fields.push({id: panel_field_id, value: recipient.panel});
+                // custom_fields.push({id: panel_field_id, value: recipient.panel});
                 custom_fields.push({id: survey_response_identifier_id, value: survey_response_identifier_value});
 
                 var ticket = {
@@ -284,7 +290,7 @@
                 // assign recipient to its proper organization
                 var organization_name = recipient.cabang ? "D " + recipient.cabang : "";
                 var organization_id = organizationsByName[organization_name] ? organizationsByName[organization_name].id : 0;
-                if (organization_id) ticket["organization_id"] = organization_id;
+                if (organization_id) {ticket["organization_id"] = organization_id;}
                 console.log(ticket); debugger;
                 return ticket;
             })
@@ -294,7 +300,7 @@
         })
         .then((response) => {
             var numOfTickets = "x";
-            $scope.notifySuccess("Processing tickets", "start creating " + numOfTickets + " tickets");
+            //$scope.notifySuccess("Processing tickets", "start creating " + numOfTickets + " tickets");
             console.log(response); debugger;
             $scope.submitToSurveyMonkeyIsLoading = false;
             $scope.init();
@@ -348,6 +354,7 @@
 
     // Handle only those from survey monkey api
     function handleSurveyMonkeyError(response, callback) {
+        console.log(response); debugger;
         var status = response.status;
         var message = response.data.error.message;
 
@@ -356,9 +363,9 @@
         if (status == 401) {
             $scope.tokenIsValid = false;
             $modal.open({
-              templateUrl: 'invalid_token_template.html',
-              backdrop: true,
-              size: 'lg'
+                templateUrl: 'invalid_token_template.html',
+                backdrop: true,
+                size: 'lg'
             });
             // Popeye.open('dialog_template.html', {msg: message});
             return;

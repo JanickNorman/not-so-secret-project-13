@@ -18,6 +18,8 @@ var argv = require('yargs').argv;
 var gulpif = require('gulp-if');
 var rename = require("gulp-rename");
 var jshint = require("gulp-jshint");
+var gulpUtil = require("gulp-util");
+var babel = require("gulp-babel");
 
 // ============================================================
 // === Constants ==============================================
@@ -122,7 +124,8 @@ gulp.task('scripts-src', function () {
         .pipe(compileDirectives())
         .pipe(concat(name))
         .pipe(gulpif(buildType === 'debug', sourcemaps.write()))
-        .pipe(gulpif(buildType === 'release', uglify({mangle: false})))
+        .pipe(gulpif(buildType === 'release', babel()))
+        // .pipe(gulpif(buildType === 'release', uglify({mangle: false}).on('error', gulpUtil.log)))
         .pipe(gulp.dest(outputDir + path));
 
 });

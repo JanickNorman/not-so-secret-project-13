@@ -67,7 +67,7 @@ angular.module('services').factory('searchStringBuilder', [function () {
             var operator = this.getOperatorDetail(operator);
             debugger;
             // If key or value is empty or null, just skip
-            if (!key) return;
+            if (!key) {return}
 
             if (operator.decorate_on_key) {
                 return symbol + key + ":" + value;

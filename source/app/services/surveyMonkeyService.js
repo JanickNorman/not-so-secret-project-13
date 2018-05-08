@@ -1,13 +1,6 @@
 angular.module('services').service("surveyMonkeyService", ['$http', '$q', 'ZAF_CONTEXT', 'ZAF_METADATA', function($http, $q, ZAF_CONTEXT, ZAF_METADATA) {
 
-	// var SM_TOKEN = ZAF_METADATA.settings.survey_monkey_token ? ZAF_METADATA.settings.survey_monkey_token : "";
-
-	// var SM_TOKEN = "apzqGssqUXFDD35T4S1gtQmu1hKOw3OyYAo5yO4B4JndJ9-P1vBoR4IMcKJELzmX96Z1sShRfp5k-Hr6misSJU0ekatmuF-JabnOag2BiDObFgfFoCnzOQnB0mY2cnVB";
-	var SM_TOKEN = "ylknOAfU7xHtNw0hpLlv88WCOurWy9BHN-pOgmJsHAm2cZtmxagTDNymDj-1zl08gQjxsJKIr4x4cch0c-XPu5pgCjxAcbVc-KuUBNpzXe2BOg4OnamC5Fq1Lxo8OLQ4";
-	//Tes-fif-itnegration app
-	// console.log(ZAF_CONTEXT);
-	// console.log(ZAF_METADATA.settings.survey_monkey_token);
-	// var SM_TOKEN = ZAF_METADATA.settings.survey_monkey_token ? ZAF_METADATA.settings.survey_monkey_token : "";
+	var SM_TOKEN = ZAF_METADATA.settings.survey_monkey_token ? ZAF_METADATA.settings.survey_monkey_token : "";
 
 	return {
 		getSurveys: function() {

@@ -1,3 +1,5 @@
+/*globals deferredBootstrapper */
+
 /**
  * Here we create our main app module. This module will be in
  * charge of pulling in globally accessible modules.
@@ -11,8 +13,7 @@ angular.module('myApp', [
     'filters',
     'services',
     'raCircleImage',
-    'moment-picker',
-    'ui-notification'
+    'moment-picker'
    ]);
 
 /**
@@ -31,26 +32,8 @@ angular.module('services', []);
  * within the tag marked with the ng-app attribute will be replaces on
  * the routes listed below.
  */
-angular.module('myApp').config(['$routeProvider', 'NotificationProvider', function ($routeProvider, NotificationProvider) {
-    NotificationProvider.setOptions({
-            delay: 10000,
-            startTop: 20,
-            startRight: 10,
-            verticalSpacing: 20,
-            horizontalSpacing: 20,
-            positionX: 'right',
-            positionY: 'top',
-        });
-
-    // $routeProvider.when('/', {
-    //     templateUrl: 'views/home.html',
-    //     controller: 'HomeController'
-    // }).when('/users', {
-    //     templateUrl: 'views/users.html',
-    //     controller: 'UsersController'
-    // });
-
-}]);
+// angular.module('myApp').config(['$routeProvider', function ($routeProvider) {
+// }]);
 
 deferredBootstrapper.bootstrap({
   element: document.body,

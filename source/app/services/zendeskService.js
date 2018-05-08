@@ -25,7 +25,7 @@ angular.module('services').service("zendeskService", ['$q', 'ZAFClient', 'search
 							debugger;
 							if  (tag.contains("~")) {
 								hasDealer = true;
-								var newResult = {...result};
+								var newResult = JSON.parse(JSON.stringify(result));
 
 								tag.split("~").forEach((info, index, array) => {
 									switch (index) {
@@ -37,9 +37,6 @@ angular.module('services').service("zendeskService", ['$q', 'ZAFClient', 'search
 											break;
 										case 2:
 											newResult.quadran = info
-											break;
-										case 3:
-											newResult.panel = info
 											break;
 										default:
 									}
@@ -94,17 +91,6 @@ angular.module('services').service("zendeskService", ['$q', 'ZAFClient', 'search
 		  };
 		  return client.request(config);
 	  },
-	  createManyTickets: function(data) {
-		  var config = {
-			  url: '/api/v2/tickets/create_many',
-			  type: 'POST',
-			  dataType : "json",
-			  contentType: "application/json; charset=utf-8",
-			  async: false,
-			  data: JSON.stringify(data)
-		  };
-		  return client.request(config);
-	  },
 	  generateSearchString: function(filters) {
 		  var searchString = "";
 		  filters.forEach(function(filter, index) {
@@ -124,7 +110,7 @@ angular.module('services').service("zendeskService", ['$q', 'ZAFClient', 'search
 				  searchString += searchStringBuilder.build(type, key, operator, value);
 
 				  // add space if item is not the last item
-				  if (index < (filters.length - 1)) { searchString += " " };
+				  if (index < (filters.length - 1)) { searchString += " " }
 			  } catch (error) {
 				  console.error(error);
 			  }
@@ -269,7 +255,7 @@ angular.module('services').service("zendeskService", ['$q', 'ZAFClient', 'search
 				if (next_page != null) {
 					return loadAll(next_page);
 				}
-				console.log(organizations); debugger;
+
 				var result = organizations.reduce((organizationsByName, organization) => {
 					if (!organizationsByName[organization.name]) {
 						organizationsByName[organization.name] = organization;
@@ -283,7 +269,7 @@ angular.module('services').service("zendeskService", ['$q', 'ZAFClient', 'search
 			.catch((error) => {
 				console.log(error); debugger;
 				return deferred.reject(error);
-			})
+			});
 		}
 		loadAll('/api/v2/organizations');
 

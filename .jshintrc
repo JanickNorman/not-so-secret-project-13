@@ -32,5 +32,10 @@
     "require": false,
     "browser": false,
     "print":true
-  }
+    },
+"asi": true,
+"sub": true,
+"eqeqeq": false,
+"shadow": true,
+"loopfunc": true
 }
